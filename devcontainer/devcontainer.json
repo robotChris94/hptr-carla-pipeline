@@ -1,0 +1,5 @@
+{
+    "image": "ghcr.io/your-org/carla-ros2:latest",
+    "runArgs": ["--gpus", "all", "--network", "host"]
+  }
+  

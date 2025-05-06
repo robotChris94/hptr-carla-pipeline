@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  carla:
+    # official CARLA Runtime docker, include Unreal engine with xvfb
+    image: carlasim/carla:0.9.15                   # also can use image build
+    container_name: carla-server
+    runtime: nvidia                                # need NVIDIA Container Toolkit
+    environment:
+      - DISPLAY=:0
+      - SDL_VIDEODRIVER=offscreen
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,graphics
+    networks:
+      - carla-net
+    ports:
+      - "2000-2002:2000-2002/udp"                  # CARLA communication port
+    command: |
+      /bin/bash -c "
+      /opt/carla/CarlaUE4.sh -opengl &
+      wait -n"
+
+  ros2:
+    build:
+      context: .                                   # read project root Dockerfile
+    container_name: ros2-ws
+    runtime: nvidia
+    depends_on:
+      - carla
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+    networks:
+      - carla-net
+    volumes:
+      - ./src:/workspace/src                      # put ROS2 package
+      - ./data:/workspace/data
+      - ./results:/workspace/results
+    command: |
+      /bin/bash -c "
+      source /opt/ros/foxy/setup.bash &&
+      colcon build --symlink-install &&
+      source install/setup.bash &&
+      ros2 launch my_pkg main.launch.py
+      "
+
+networks:
+  carla-net:
+    driver: bridge

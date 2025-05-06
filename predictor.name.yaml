@@ -1,0 +1,12 @@
+# cfg/g1_baseline_pid.yaml
+predictor:
+  name: "none"           # none | hptr | trafficsim
+  ckpt_path: ""          # keep it empty, means no need
+controller:
+  type: "pid"            # pid | lqc
+  params:
+    kp: 0.8
+    ki: 0.1
+    kd: 0.2
+scenario_list: "lists/scenes.txt"  // scene.txt will store generated data
+output_dir: "results/g1"
