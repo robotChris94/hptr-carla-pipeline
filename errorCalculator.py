@@ -55,7 +55,7 @@ def main():
     }
 
     Path(args.out).write_text(json.dumps(results, indent=2))
-    print(f"✅  metrics saved to {args.out}")
+    print(f"metrics saved to {args.out}")
 
 
 if __name__ == "__main__":
