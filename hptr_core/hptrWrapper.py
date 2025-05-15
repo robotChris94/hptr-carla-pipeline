@@ -14,7 +14,9 @@ class HPTRWrapper:
         self.device = device
 
         ckpt = torch.load(model_path, map_location=device, weights_only=False)
-        state_dict = ckpt['state_dict']
+        #state_dict = ckpt['state_dict']
+        state_dict = {k: v for k, v in ckpt['state_dict'].items()
+              if not k.startswith("model.intra_class_encoder.fc_tl.")}
 
         # 重新命名 key：移除 "model." 前綴
         new_state_dict = {}
@@ -27,7 +29,7 @@ class HPTRWrapper:
             hidden_dim=256,
             agent_attr_dim=68,
             map_attr_dim=38,
-            tl_attr_dim=5,
+            tl_attr_dim=38,
             pl_aggr=False,
             n_tgt_knn=36,
             rpe_mode='pe_xy_yaw',

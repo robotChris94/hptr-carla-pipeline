@@ -10,37 +10,35 @@ import carla
 MAX_POLYLINE = 128
 MAX_POINTS = 20
 FEATURE_DIM = 8  # 可依照模型調整
+num_agent_type = 3
 
-def carla2hptr(world, ego_vehicle, history_buffer):
-    """
-    將 CARLA 場景中的資訊轉換為 polyline tensor，供 HPTR 使用。
-    history_buffer: collections.deque 存過去 N 次 tick 的 ego 座標。
-    """
-    polylines = []
+def carla2hptr(world, ego, history, num_agent_type=3):
+    # 假設有 128 個 entity（agent, map, tl），每個都給一個 placeholder
+    B = 1
+    N = 128
+    L = 20  # past steps
+    D_attr = 68
+    D_pose = 3
+    
+    
 
-    # 1. ego 歷史軌跡 polyline
-    ego_points = []
-    for loc in list(history_buffer)[-MAX_POINTS:]:
-        ego_points.append([loc.x, loc.y, 0, 0, 0, 0, 0, 1])  # 最後一維 one-hot = ego
-    while len(ego_points) < MAX_POINTS:
-        ego_points.insert(0, ego_points[0])  # padding
-    polylines.append(ego_points)
+    batch = {
+        "agent_valid": torch.ones(B, N, 1, dtype=torch.bool),             # 全部為有效 agent
+        "agent_type": torch.zeros(B, N, num_agent_type, dtype=torch.long),           # 全部 type = 0
+        "agent_attr": torch.randn(B, N, 1, 68),                      # 隨機 attr
+        "agent_pose": torch.randn(B, N, D_pose),                   # 隨機 pose
 
-    # 2. 動態車輛（附近其他車）
-    for actor in world.get_actors().filter("vehicle.*"):
-        if actor.id == ego_vehicle.id:
-            continue
-        loc = actor.get_location()
-        poly = [[loc.x, loc.y, 0, 0, 0, 0, 1, 0]] * MAX_POINTS
-        polylines.append(poly)
-        if len(polylines) >= MAX_POLYLINE:
-            break
+        "map_valid": torch.ones(B, N, 1, dtype=torch.bool),
+        "map_attr": torch.randn(B, N, 1, 38),
+        "map_pose": torch.randn(B, N, D_pose),
 
-    # 3. 道路線（可略或簡化為直線）
-    # 在正式版本可用 map.get_waypoint() 拿 lane centerline
-
-    polyline_tensor = torch.tensor(polylines[:MAX_POLYLINE], dtype=torch.float32)
-    return polyline_tensor
-
-# 注意：你要在主程式裡建立 history_buffer = deque(maxlen=MAX_POINTS)
-# 並每 tick 時記錄 ego 的位置進去
+        "tl_valid": torch.zeros(B, N, 1, dtype=torch.bool),
+        "tl_attr": torch.zeros(B, N, 1, 38),
+        "tl_pose": torch.zeros(B, N, D_pose),        
+    }
+    
+    print("🧪 agent_pose.shape =", batch["agent_pose"].shape)
+    print("🧪 map_pose.shape   =", batch["map_pose"].shape)
+    print("🧪 tl_pose.shape    =", batch["tl_pose"].shape)
+    
+    return batch

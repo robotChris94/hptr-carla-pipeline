@@ -126,7 +126,12 @@ class SceneCentricRelative(pl.LightningModule):
             if self.pl_aggr:
                 emb_invalid = ~torch.cat([map_valid, tl_valid, agent_valid], dim=1)
             else:
-                emb_invalid = ~torch.cat([map_valid.any(-1), tl_valid, agent_valid.any(-1)], dim=1)
+                #emb_invalid = ~torch.cat([map_valid.any(-1), tl_valid, agent_valid.any(-1)], dim=1)
+                emb_invalid = ~torch.cat([
+    map_valid.any(-1, keepdim=True),     # (B, 1)
+    tl_valid,                             # (B, N)
+    agent_valid.any(-1, keepdim=True)    # (B, 1)
+], dim=1)
 
             pose_input = torch.cat([map_pose, tl_pose, agent_pose], dim=1)
             emb_invalid = torch.zeros((pose_input.shape[0], pose_input.shape[1]), dtype=torch.bool, device=pose_input.device)
@@ -376,7 +381,7 @@ class IntraClassEncoder(nn.Module):
             agent_valid: [n_scene, n_agent]
         """
         for _ in range(inference_repeat_n):
-            n_scene, n_tl = tl_valid.shape
+            n_scene, n_tl, _ = tl_valid.shape 
             n_map = map_valid.shape[1]
             n_agent = agent_valid.shape[1]
             _idx_scene = torch.arange(n_scene)[:, None, None]  # [n_scene, 1, 1]
@@ -410,6 +415,9 @@ class IntraClassEncoder(nn.Module):
 
         # ! traffic lights
         for _ in range(inference_repeat_n):
+            tl_attr = tl_attr.squeeze(2) 
+            tl_valid = tl_valid.squeeze(2)
+            
             tl_emb = self.fc_tl(tl_attr, tl_valid)  # [n_scene, n_tl, hidden_dim]
             if self.tf_tl is not None:
                 _tl_invalid = ~tl_valid
